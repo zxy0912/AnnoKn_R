@@ -1,0 +1,34 @@
+AnnoGKR provenance and local changes
+
+Upstream repository: https://github.com/zxy0912/AnnoGK_R
+Upstream commit: ddf7551b40bafb3398c236337871b9415e4abadd
+Upstream package version: 0.1.0
+Upstream license: GPL-3
+Imported: 2026-11-03
+Local package version: 0.1.0.9001
+
+The original R/AnnoGK.R, R/GhostKnockoff.R, and R/KF_anno.R are preserved.
+R/AnnoGK_dss.R adds four functions from Xiangyu Zhang's historical GK_anno.R:
+  GK_anno_dss
+  sol_beta_and_lam_ps_dss
+  cv_func_dss
+  GhostKnockoff.lambda
+Only GK_anno_dss is exported; the three helpers are internal.
+
+Historical source file SHA-256:
+f77341831fad76f1311032fecc6ac0bf542fcef337b4c30ce7987a015bc28efc
+The audit compared this file byte-for-byte with the author's source copy.
+The four function expressions are unchanged after R parsing with
+keep.source=FALSE. Comments and formatting were normalized; roxygen comments,
+an Rd help page, installation instructions and package tests were added.
+This is an extension maintained in the paper repository, not an upstream release.
+
+The independent AnnoKn package at the repository root retains its own license.
+The AnnoGKR subpackage retains upstream's GPL-3 license declaration.
+
+Reproducibility scope:
+This addition supplies the missing DSS implementation. The historical simulation
+drivers still require path/dependency configuration and migration of their
+source() calls before they can run using only installed packages. Numerical
+equivalence of all manuscript results has not been established. Preserve the
+historical data, seed sequence and software environment for result comparisons.

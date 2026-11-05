@@ -1,0 +1,58 @@
+key	root	relative_path	description	expected_content
+annokn_source	repository	helpers/legacy/annokn	Bundled historical source snapshot used by the legacy analysis drivers; distinct from package/revision versions	KF_anno.R
+annogk_source	repository	helpers/legacy/annogk	Bundled historical source snapshot used by the legacy analysis drivers; distinct from package/revision versions	GK_anno.R; GhostKnockoff.R
+comparison_utils	repository	helpers/legacy/comparison_utils	Bundled historical source snapshot used by the legacy analysis drivers; distinct from package/revision versions	all_other_methods.R; adaptive_knockoff.R; filter_EM.R; filter_gam.R; filter_glm.R; filter_randomForest.R; All_q_est_functions.R; accumulation_test_functions.R
+gtex_expression	data	gtex/expression	Covariate-adjusted gene expression	adjusted_expr_age_sex_<pc>genopcs_5peers/chr<chr>/<gene>/<tissue>.adj_expr
+gtex_plink	data	gtex/ancestry	GTEx genotype PLINK roots by ancestry and MAF	<ancestry>/<MAF directory>/GTEX_chr<chr>.bed/.bim/.fam
+gtex_null_gene_coordinates	data	gtex/null_gene_coordinates	Gene coordinates for null diagnostics	chr_<chr>_ct_<tissue>.txt
+gtex_gene_coordinates	data	gtex/gene_coordinates	Gene coordinates for annotation analyses	chr_<chr>_ct_<tissue>.txt
+gtex_variant_coordinates	data	gtex/ucsc_hg38	Variant ID and hg38 position mapping	chr<chr>_selected.txt
+ldsc_annotations	data	annotations/baselineLD_v2.2	GRCh38 baselineLD annotations	baselineLD.<chr>.annot.gz
+ukbb	data	ukbb	UKBB genotype and historical LD-block metadata	EUR_0.05maf/bychr/chr_<chr>_2w_common.bed/.bim/.fam; EUR_0.05maf/real_simulation/region_information/chr<chr>_common.txt; EUR/fourier_ls-all.bed
+reference_plink	data	reference/1000G/EUR	External reference PLINK files; verify genome build	1KG_chr<chr>.bed/.bim/.fam
+annokn_1d_results	output	simulations/annokn/1dim	1D simulation results used by producer and reader	result_<annotation>_amp_<amp>_<replicate>.RData
+annokn_2d_results	output	simulations/annokn/2dim	2D scenario results; includes covariance code in filenames	result_<annotation>_amp_<amp>_type_<scenario>_cor_<cor>_<replicate>.RData
+annokn_2d_timing_results	data	precomputed/annokn_2dim_timing	Historical timing inputs; distinct from current 2D producer	result_<annotation>_amp_<amp>_type_<scenario>_<replicate>.RData; reconcile reader/producer naming
+annokn_5d_results	output	simulations/annokn/5dim	Five-annotation simulations	result_randomposition_1_p_<p>_*.RData
+annogk_results	output	simulations/annogk	Summary-statistic simulation results	heri_final_10_<annotation/h2>_n_<n>_p_<p>_<replicate>.RData
+true_genotype_legacy_results	output	simulations/true_genotype/legacy	Imported LD-block producer results; not the final 2MB experiment	result_insample_iter_*.RData; result_external_iter_*.RData
+true_genotype_paper_results	data	precomputed/true_genotype_2MB	Final-figure reader inputs; matching producer not yet reconciled	result_2MB_<insample/external>_iter_*.RData; external regu_0.2
+gtex_null_results	output	gtex/null_diagnostics	Real/simulated genotype null diagnostics	chr_*.RData; knockoff_chr_*.RData; annokn_chr_*.RData
+gtex_annotation_results	output	gtex/annotations	GTEx annotation fit and summary results	chr_<chr>_ct_<tissue>_type_<type>.RData
+gtex_logs	output	logs/gtex	GTEx analysis log files	log_<tissue>.txt
+plots	output	plots/main	Simulation and GTEx plot exports	PDF files; distinct mode-specific filenames still need configuration
+revision_plots	output	plots/revision	Revision plot exports	AnnoKn_2dim*.pdf; GTEx4.1/*.pdf
+archived_ldsc_annotations	data	archived/baselineLD_2.1	Commented historical annotation reference	baselineLD.<chr>.annot.gz
+archived_gtex_results	output	archived/gtex	Commented historical result/log references	Not used by active code
+archived_knockoff_source	source	archived/knockoff	Commented alternative implementation	knockoff_anno.R
+archived_em_source	source	archived/em	Commented alternative EM implementation	EM.R
+revision_helpers	repository	helpers/revision_comparators	Helpers supplied with revision archive; distinct from historical comparison_utils	filter_*.R; transfer_functions.R
+annotation_dependence_results	output	simulations/annotation_dependence	Revision simulation producer/reader results	RData files; retain original method order
+transfer_results	output	simulations/transfer	Revision simulation producer/reader results	RData files; retain original method order
+summary_adakn_results	output	simulations/summary_adakn	Revision simulation producer/reader results	RData files; retain original method order
+hybrid_results	output	simulations/hybrid	Revision simulation producer/reader results	RData files; retain original method order
+annotation_dependence_plots	output	plots/annotation_dependence	Revision plot exports	PDF files
+transfer_plots	output	plots/transfer	Revision plot exports	PDF files
+summary_adakn_plots	output	plots/summary_adakn	Revision plot exports	PDF files
+hybrid_plots	output	plots/hybrid	Revision plot exports	PDF files
+height_plots	output	plots/height	Revision plot exports	PDF files
+scz_four_method_results	output	scz/four_methods	Revision archive output	EUR/EAS four-method result_adakn RData; 100 seeds
+scz_baseline_results	output	scz/baseline	Revision archive output	Two-method result_dss RData; generator only seeds 51..100
+height_single_results	output	height/single	Revision archive output	EUR/AFR result_dss RData, seed 1000
+height_ten_results	output	height/ten_runs	Revision archive output	EUR/AFR result_dss RData; seeds 100..1000; combine explicitly
+height_single_regions	output	height/single_regions	Revision archive output	EUR/AFR_chr_<chr>.txt
+height_ten_regions	output	height/ten_run_regions	Revision archive output	EUR/AFR_chr_<chr>.txt
+gtex_revision_results	output	gtex/revision	Revision archive output	chr_<chr>_ct_<tissue>_type_<type>.RData
+gtex_revision_logs	output	logs/gtex_revision	Revision archive output	log_<tissue>.txt
+gtex_specific_gene_exports	output	gtex/specific_genes	Revision archive output	Method-specific gene text files
+height_gwas	data	height/gwas	Revision archive input	GIANT_HEIGHT_YENGO_2022_GWAS_SUMMARY_STATS_<ancestry> files
+scz_gwas	data	scz/gwas	Revision archive input	SCZ GWAS summary statistics by ancestry; see filenames in drivers
+scz_candidate_regions	data	scz/candidate_regions	Revision archive input	Ancestry/chromosome candidate-region text files
+cross_ancestry_plink	data	reference/1000G	Revision archive input	bychr_<ancestry>/1KG_chr<chr>.bed/.bim/.fam
+gtex_gene_metadata	data	gtex/gene_metadata	Revision archive input	Per-gene metadata
+gtex_diagnostic_expression	data	gtex/diagnostic_expression	Copied expression version used in Pancreas diagnostic	adjusted_expr_age_sex_<pc>genopcs_5peers/...
+archived_height_results	output	archived/height	Inactive historical output reference	RData
+archived_scz_regions	data	archived/scz_regions	Inactive historical region reference	Region text files
+height_validation_workspace	data	workspaces/height	Writable analysis workspace; reference inputs and derived outputs coexist	reference/ GENCODE v19, frozen HGNC and GeneCards panels; annot_pvalus/{result,risk_region}/; height_ten_seed_region_stability_q0p1/
+scz_validation_workspace	data	workspaces/scz	Writable SCZ validation workspace; reference inputs and derived outputs coexist	result/ four-method RData; reference/ SCHEMA panels; genecards_SCZ_top100.csv; hundred_seed_region_stability_q0p1/
+gtex_validation_workspace	data	workspaces/gtex	Writable GTEx validation workspace; reference inputs and derived outputs coexist	result/, new_seed/result/, gene_coor/, method-specific eGene summaries

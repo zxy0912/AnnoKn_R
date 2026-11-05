@@ -1,11 +1,9 @@
 
-## this file is modified based on https://github.com/cran/GhostKnockoff/blob/master/R/GhostKnockoff.R by Zihuai He
-
 GhostKnockoff.prelim<-function(cor.G, M=5, method='sdp', max.size=500, corr_max=0.75, clusters=NULL, rep.index=NULL){
   n.G<-nrow(cor.G)
   Normal_50Studies<-matrix(rnorm(n.G*M*50),n.G*M,50)
   P.each<-matrix(0,n.G,n.G)
-  
+
   eigen.fit<-eigen(cor.G)
   newEig <- ifelse(eigen.fit$values < 1e-5, 1e-5, eigen.fit$values)
   newMat <- eigen.fit$vectors %*% (newEig*t(eigen.fit$vectors))
@@ -15,9 +13,9 @@ GhostKnockoff.prelim<-function(cor.G, M=5, method='sdp', max.size=500, corr_max=
   cor.G<-as.matrix(forceSymmetric(cor.G))
   Sigma<-cor.G
   SigmaInv<-solve(Sigma)
-  
+
   if(length(clusters)==0){
-    #clustering to identify tightly linked variants, 
+    #clustering to identify tightly linked variants,
     #first apply hierarchical clustering to determine number of clusters
     corr_max<-corr_max
     Sigma.distance = as.dist(1 - abs(Sigma))
@@ -26,7 +24,7 @@ GhostKnockoff.prelim<-function(cor.G, M=5, method='sdp', max.size=500, corr_max=
       clusters = cutree(fit, h=1-corr_max)
     }else{clusters<-1}
   }
-  
+
   if(method=='equi'){
     s<-create.solve_equi_M(Sigma,M=M)
     diag_s<-Matrix(diag(s,length(s)))
@@ -37,12 +35,12 @@ GhostKnockoff.prelim<-function(cor.G, M=5, method='sdp', max.size=500, corr_max=
     diag_s<-Matrix(diag(s,length(s)))
     clusters=NULL
   }
-  if(method=='mvr'){ 
+  if(method=='mvr'){
     s<-solve_MVR_s_with_julia(Sigma,M=M)
     diag_s<-Matrix(diag(s,length(s)))
     clusters=NULL
   }
-  if(method=='me'){ 
+  if(method=='me'){
     s<-solve_ME_s_with_julia(Sigma,M=M)
     diag_s<-Matrix(diag(s,length(s)))
     clusters=NULL
@@ -94,19 +92,19 @@ GhostKnockoff.prelim<-function(cor.G, M=5, method='sdp', max.size=500, corr_max=
     }
     diag_s<-create.solve_group_graphME_M(Sigma,rep.index,M=M,clusters=clusters)$S
   }
-  
+
   if(sum(diag_s)==0){
     V.left<-matrix(0,n.G*M,n.G*M)
   }else{
     #Sigma_k<-2*diag_s - s*t(s*SigmaInv)
     Sigma_k<-2*diag_s - diag_s%*%SigmaInv%*%diag_s
-    
+
     V.each<-Matrix(forceSymmetric(Sigma_k-diag_s))
-    
+
     #random part of knockoff
     V<-matrix(1,M,M)%x%V.each+diag(1,M)%x%diag_s
     V<-Matrix(forceSymmetric(V))
-    
+
     #diag(V)<-diag(V)+rep(s,M)
     V.left<-try(t(chol(V)),silent=T)
     if(class(V.left)=="try-error"){
@@ -122,14 +120,14 @@ GhostKnockoff.prelim<-function(cor.G, M=5, method='sdp', max.size=500, corr_max=
   #P.each<-diag(1,length(s))-s*SigmaInv
   P.each<-diag(1,n.G)-diag_s%*%SigmaInv
   Normal_50Studies<-as.matrix(V.left%*%matrix(rnorm(ncol(V.left)*50),ncol(V.left),50))
-  
+
   #is_posdef((M+1)/M*Sigma-diag_s)
   A.each<-Sigma-diag_s
   A<-matrix(1,M+1,M+1)%x%A.each+diag(1,M+1)%x%diag_s
   #is_posdef(A)
   A<-Matrix(forceSymmetric(A))
-  
-  
+
+
   A.left<-try(t(chol(A)),silent=TRUE)
   if(class(A.left)[1]=="try-error"){
     #alpha<-0.05-min(eigen(A)$values)
@@ -153,7 +151,7 @@ GhostKnockoff.prelim<-function(cor.G, M=5, method='sdp', max.size=500, corr_max=
   A.left<-as.matrix(t(chol(A)))
   #svd.A<-svd(A)
   #svd.A<-svd(A)
-  
+
   return(list(P.each=as.matrix(P.each), V.left=V.left, Normal_50Studies=as.matrix(Normal_50Studies), M=M, A=A, A.left=A.left, clusters=clusters, diag_s=diag_s, Sigma=Sigma))
 }
 
@@ -163,7 +161,7 @@ GhostKnockoff.fit<-function(Zscore_0, N.effect, fit.prelim, method='susie',type=
   N.effect<-as.vector(N.effect)
   Zscore_0[is.na(Zscore_0)]<-0
   N.effect[is.na(N.effect)]<-Inf
-  
+
   M<-fit.prelim$M
   n.G<-nrow(Zscore_0)
   P.each<-fit.prelim$P.each
@@ -171,10 +169,10 @@ GhostKnockoff.fit<-function(Zscore_0, N.effect, fit.prelim, method='susie',type=
   A<-as.matrix(fit.prelim$A)
   A.left<-fit.prelim$A.left
   V.left<-fit.prelim$V.left
-  
+
   if(type=='fdr'){M.rep<-1}
   if(type=='fwer'){M.rep<-M.fwer}
-  
+
   T_0<-list();T_k<-list()
   kappa<-list();tau<-list()
   for(m in 1:M.rep){
@@ -182,7 +180,7 @@ GhostKnockoff.fit<-function(Zscore_0, N.effect, fit.prelim, method='susie',type=
     Normal_k<-matrix(V.left%*%matrix(rnorm(ncol(V.left)),ncol(V.left),1),nrow=n.G)
     GK.Zscore_0<-Zscore_0
     GK.Zscore_k<-as.vector(P.each%*%GK.Zscore_0)+Normal_k
-    
+
     if(method=='marginal'){
       T_0[[m]]<-(GK.Zscore_0)^2
       T_k[[m]]<-(GK.Zscore_k)^2
@@ -192,7 +190,7 @@ GhostKnockoff.fit<-function(Zscore_0, N.effect, fit.prelim, method='susie',type=
       r<-GK.Zscore_0/sqrt(N.effect)#sqrt(N.effect-1+GK.Zscore_0^2)
       r_k<-as.vector(GK.Zscore_k/sqrt(N.effect))#sqrt(N.effect-1+GK.Zscore_k^2))
       r_all<-as.matrix(c(r,r_k))
-      
+
       nfold<-5
       nA<-N.effect*(nfold-1)/nfold;nB<-N.effect/nfold
       temp.left<-sqrt(nB/nA/N.effect)*as.matrix(A.left)
@@ -206,22 +204,22 @@ GhostKnockoff.fit<-function(Zscore_0, N.effect, fit.prelim, method='susie',type=
       fit.basil<-try(ghostbasil(temp.A, r_all_A, alpha=1, delta.strong.size = max(1,min(500,length(r_all_A)/20)), max.strong.size = nrow(temp.A),n.threads=1,use.strong.rule=FALSE),silent=T)
       parameter.set<-rbind(parameter.set,cbind(fit.basil$lmdas,shrink[k]))
       beta.all<-cbind(beta.all,fit.basil$betas)
-      
+
       Get.f<-function(x){x<-as.matrix(x);return(t(x)%*%r_all_B/sqrt(t(x)%*%temp.A%*%x))}
       f.lambda<-apply(beta.all,2,Get.f)
       f.lambda[is.na(f.lambda)]<--Inf
       #beta<-beta.all[,which.max(f.lambda)]
       parameter<-parameter.set[which.max(f.lambda),]
       temp.A<-(1-parameter[2])*A+diag(parameter[2],nrow(A))
-      
+
       lambda.all<-fit.basil$lmdas
       lambda<-fit.basil$lmdas[which.max(f.lambda)]
       lambda.seq <- lambda.all[lambda.all > lambda]
       lambda.seq <- c(lambda.seq, lambda)
-      
+
       fit.basil<-ghostbasil(temp.A, r_all,user.lambdas=lambda.seq, alpha=1, delta.strong.size = max(1,min(500,length(r_all_A)/20)), max.strong.size = nrow(temp.A),n.threads=1,use.strong.rule=FALSE)
       beta<-fit.basil$betas[,ncol(fit.basil$betas)]
-      
+
       T_0[[m]]<-abs(beta[1:n.G])
       T_k[[m]]<-abs(matrix(beta[-(1:n.G)],n.G,M))
     }
@@ -230,7 +228,7 @@ GhostKnockoff.fit<-function(Zscore_0, N.effect, fit.prelim, method='susie',type=
       r<-GK.Zscore_0/sqrt(N.effect)#sqrt(N.effect-1+GK.Zscore_0^2)
       r_k<-as.vector(GK.Zscore_k/sqrt(N.effect))#sqrt(N.effect-1+GK.Zscore_k^2))
       r_all<-as.matrix(c(r,r_k))
-      
+
       N_eff <- as.numeric(N.effect[1])
       lambda_max<-max(abs(rnorm(length(r_all))))/sqrt(as.numeric(N_eff))
       epsilon <- .0001
@@ -240,11 +238,11 @@ GhostKnockoff.fit<-function(Zscore_0, N.effect, fit.prelim, method='susie',type=
       lambda<-lambda_max*0.6
       lambda.seq <- lambda.all[lambda.all > lambda]
       lambda.seq <- c(lambda.seq, lambda)
-      
+
       temp.A<-A+0.01*diag(1,nrow(A))
       fit.basil<-ghostbasil(temp.A, r_all,user.lambdas=lambda.seq, alpha=1, delta.strong.size = max(1,min(500,length(r_all)/20)), max.strong.size = nrow(temp.A),n.threads=1,use.strong.rule=F)
       beta<-fit.basil$betas[,ncol(fit.basil$betas)]
-      
+
       T_0[[m]]<-abs(beta[1:n.G])
       T_k[[m]]<-abs(matrix(beta[-(1:n.G)],n.G,M))
     }
@@ -259,7 +257,7 @@ GhostKnockoff.fit<-function(Zscore_0, N.effect, fit.prelim, method='susie',type=
     kappa[[m]]<-MK.stat[,'kappa']
     tau[[m]]<-MK.stat[,'tau']
   }
-  
+
   return(list(T_0=T_0,T_k=T_k,kappa=kappa,tau=tau,temp.A=temp.A,r_all=r_all,lambda.seq=lambda.seq,lambda = lambda ))
 }
 
@@ -291,7 +289,7 @@ GhostKnockoff.fwer<-function(kappa,tau,M,M.fwer=50,alpha=0.05,beta=1){
   S <- which(pi>=eta)
   q<-rep(1,length(kappa[[1]]))
   q[S]<-0
-  
+
   return(list(S=S,q=q))
 }
 
@@ -315,7 +313,7 @@ Get.transfer.Tau<-function(kappa,tau,U,reveal_prop=0.5){
       temp.x<-tau[unrevealed_id]
       temp.z<-U[unrevealed_id,,drop=F]
       fitted.pval = predict(temp.fit,data.frame(cbind(temp.x,temp.z)),type = "response")
-      
+
       revealed_id<-c(revealed_id,unrevealed_id[which.max(fitted.pval)])
       transfer.tau[unrevealed_id[which.max(fitted.pval)]]<-k
       unrevealed_id<-(1:length(tau))[-revealed_id]
@@ -330,7 +328,7 @@ get_lp_bnd <- function(M,eta,beta){
   one_eta <- rep(0,M+1)
   supp <- (0:M)/M
   one_eta[supp>=eta] <- 1
-  
+
   y <- Variable(M+1)
   obj <- Maximize(t(one_eta)%*% y)
   constraints <- list(
@@ -346,7 +344,7 @@ get_lp_bnd <- function(M,eta,beta){
 }
 
 compute_eta_given_M <- function(M,alpha,beta){
-  v <- 1 ## the parameter v 
+  v <- 1 ## the parameter v
   etalist <- seq(0.05, 1, by = 0.01) ## candidates for eta
   peta <- length(etalist)
   alpha_mat <- rep(0,peta) ## the matrix to store the FWER bound with each pair of (M,eta)
@@ -400,7 +398,7 @@ compute_eta_given_M <- function(M,alpha,beta){
 #    }
 #    q[q>1]<-1
 #  }
-#  
+#
 #  return(list(kappa=kappa,tau=tau,q=q))
 #}
 
@@ -408,19 +406,19 @@ compute_eta_given_M <- function(M,alpha,beta){
 GhostKnockoff.filter<-function (T_0,T_k,clusters=1:length(T_0)){
   T_0<-as.matrix(T_0);T_k<-as.matrix(T_k)
   M<-ncol(T_k);Rej.Bound<-10000
-  
+
   T.temp<-cbind(T_0,T_k)
   T.temp[is.na(T.temp)]<-0
-  
+
   which.max.alt<-function(x){
     temp.index<-which(x==max(x))
     if(length(temp.index)!=1){return(temp.index[2])}else{return(temp.index[1])}
   }
   kappa<-apply(T.temp,1,which.max.alt)-1
-  
+
   Get.OtherMedian<-function(x){median(x[-which.max(x)])}
   tau<-apply(T.temp,1,max)-apply(T.temp,1,Get.OtherMedian)
-  
+
   b<-order(tau,decreasing=T)
   c_0<-kappa[b]==0
   #calculate ratios for top Rej.Bound tau values
@@ -446,7 +444,7 @@ GhostKnockoff.filter<-function (T_0,T_k,clusters=1:length(T_0)){
     }
     q[q>1]<-1
   }
-  
+
   return(list(kappa=kappa,tau=tau,q=q))
 }
 
@@ -478,7 +476,7 @@ MK.q.byStat<-function (kappa,tau,M,clusters=1:length(kappa),Rej.Bound=10000){
     }
     q[q>1]<-1
   }
-  
+
   return(q)
 }
 
@@ -489,21 +487,21 @@ create.solve_group_graphME_M <- function(Sigma, rep.index, M=1, clusters, gaptol
   # Convert the covariance matrix to a correlation matrix
   G = cov2cor(Sigma)
   p = dim(G)[1]
-  
+
   # Check that the input matrix is positive-definite
   if (!is_posdef(G)) {
     warning('The covariance matrix is not positive-definite: knockoffs may not have power.', immediate.=T)
   }
-  
+
   ini.clusters<-clusters[rep.index]
   ini.clusters<-match(ini.clusters,unique(ini.clusters))
-  
+
   Sigma_rep<-Sigma[rep.index,rep.index,drop=F]
   inv.Sigma_rep<-solve(Sigma_rep)
   if(nrow(Sigma_rep)==1){S<-as.matrix(1)}else{
     S<-create.solve_group_ME_pca_M(Sigma_rep,M=M,clusters=ini.clusters)$S
   }
-  
+
   diag_s<-matrix(0,nrow(Sigma),ncol(Sigma))
   diag_s[rep.index,rep.index]<-as.matrix(S)
   diag_s[rep.index,-rep.index]<-as.matrix(S%*%inv.Sigma_rep%*%Sigma[rep.index,-rep.index])
@@ -513,9 +511,9 @@ create.solve_group_graphME_M <- function(Sigma, rep.index, M=1, clusters, gaptol
                                              Sigma[-rep.index,rep.index]%*%inv.Sigma_rep%*%S%*%inv.Sigma_rep%*%Sigma[rep.index,-rep.index])
   #                                               Sigma[-rep.index,rep.index]%*%(inv.Sigma_rep-inv.Sigma_rep%*%S%*%inv.Sigma_rep)%*%Sigma[rep.index,-rep.index])
   diag_s<-Matrix(forceSymmetric(diag_s))
-  
+
   S<-diag_s
-  
+
   # Compensate for numerical errors (feasibility)
   # psd S
   psd = 0;
@@ -528,7 +526,7 @@ create.solve_group_graphME_M <- function(Sigma, rep.index, M=1, clusters, gaptol
   }
   S = S*(1-s_eps)+diag(s_eps,nrow(S))
   S<-Matrix(S)
-  
+
   psd = 0;
   s_eps = 1e-8;
   while (psd==0) {
@@ -539,7 +537,7 @@ create.solve_group_graphME_M <- function(Sigma, rep.index, M=1, clusters, gaptol
   }
   S = S*(1-s_eps)
   S<-Matrix(S)
-  
+
   # Scale back the results for a covariance matrix
   return(list(S=diag(Sigma)^(1/2)*t(diag(Sigma)^(1/2)*S),Sigma=diag(Sigma)^(1/2)*t(diag(Sigma)^(1/2)*G),clusters=clusters,obj.tr=sum(diag(S))))
 }
@@ -550,19 +548,19 @@ create.solve_group_graphSDP_M <- function(Sigma, rep.index, M=1, clusters, gapto
   # Convert the covariance matrix to a correlation matrix
   G = cov2cor(Sigma)
   p = dim(G)[1]
-  
+
   # Check that the input matrix is positive-definite
   if (!is_posdef(G)) {
     warning('The covariance matrix is not positive-definite: knockoffs may not have power.', immediate.=T)
   }
-  
+
   ini.clusters<-clusters[rep.index]
   ini.clusters<-match(ini.clusters,unique(ini.clusters))
-  
+
   Sigma_rep<-Sigma[rep.index,rep.index]
   inv.Sigma_rep<-solve(Sigma_rep)
   S<-create.solve_group_sdp_pca_M(Sigma_rep,M=M,clusters=ini.clusters)$S
-  
+
   diag_s<-matrix(0,nrow(Sigma),ncol(Sigma))
   diag_s[rep.index,rep.index]<-as.matrix(S)
   diag_s[rep.index,-rep.index]<-as.matrix(S%*%inv.Sigma_rep%*%Sigma[rep.index,-rep.index])
@@ -572,9 +570,9 @@ create.solve_group_graphSDP_M <- function(Sigma, rep.index, M=1, clusters, gapto
                                              Sigma[-rep.index,rep.index]%*%inv.Sigma_rep%*%S%*%inv.Sigma_rep%*%Sigma[rep.index,-rep.index])
   #                                               Sigma[-rep.index,rep.index]%*%(inv.Sigma_rep-inv.Sigma_rep%*%S%*%inv.Sigma_rep)%*%Sigma[rep.index,-rep.index])
   diag_s<-Matrix(forceSymmetric(diag_s))
-  
+
   S<-diag_s
-  
+
   # Compensate for numerical errors (feasibility)
   # psd S
   psd = 0;
@@ -587,7 +585,7 @@ create.solve_group_graphSDP_M <- function(Sigma, rep.index, M=1, clusters, gapto
   }
   S = S*(1-s_eps)+diag(s_eps,nrow(S))
   S<-Matrix(S)
-  
+
   psd = 0;
   s_eps = 1e-8;
   while (psd==0) {
@@ -598,7 +596,7 @@ create.solve_group_graphSDP_M <- function(Sigma, rep.index, M=1, clusters, gapto
   }
   S = S*(1-s_eps)
   S<-Matrix(S)
-  
+
   # Scale back the results for a covariance matrix
   return(list(S=diag(Sigma)^(1/2)*t(diag(Sigma)^(1/2)*S),Sigma=diag(Sigma)^(1/2)*t(diag(Sigma)^(1/2)*G),clusters=clusters,obj.tr=sum(diag(S))))
 }
@@ -609,13 +607,13 @@ solve_ME_s_with_julia <- function(Sigma, M=1) {
   # pass Sigma from R to Julia
   julia_assign("Sigma", Sigma)
   julia_assign("M", M)
-  
+
   # solve for s vector in Julia (note: one must wrap `Symmetric()` keyword around Sigma)
   julia_command("s = solve_s(Symmetric(Sigma), :maxent, tol=0.000001, robust=false, m=Int(M));")
-  
+
   # put s vector from Julia back to R
   s <- julia_eval("s")
-  
+
   # return s vector
   return(s)
 }
@@ -624,13 +622,13 @@ solve_MVR_s_with_julia <- function(Sigma, M=1) {
   # pass Sigma from R to Julia
   julia_assign("Sigma", Sigma)
   julia_assign("M", M)
-  
+
   # solve for s vector in Julia (note: one must wrap `Symmetric()` keyword around Sigma)
   julia_command("s = solve_s(Symmetric(Sigma), :mvr, tol=0.000001, robust=false, m=Int(M));")
-  
+
   # put s vector from Julia back to R
   s <- julia_eval("s")
-  
+
   # return s vector
   return(s)
 }
@@ -640,13 +638,13 @@ solve_group_ME_s_with_julia <- function(Sigma, M=1, groups) {
   julia_assign("Sigma", Sigma)
   julia_assign("M", M)
   julia_assign("groups", groups)
-  
+
   # solve for S matrix in Julia (note there are 2 outputs!!!)
   julia_command("S, gammas = solve_s_group(Sigma, groups, :maxent, niter=20, tol=0.005, robust=false, m=Int(M));")
-  
+
   # put S matrix from Julia back to R
   S <- julia_eval("S")
-  
+
   # return S vector
   return(S)
 }
@@ -656,13 +654,13 @@ solve_group_MVR_s_with_julia <- function(Sigma, M=1, groups) {
   julia_assign("Sigma", Sigma)
   julia_assign("M", M)
   julia_assign("groups", groups)
-  
+
   # solve for S matrix in Julia (note there are 2 outputs!!!)
   julia_command("S, gammas = solve_s_group(Sigma, groups, :mvr, niter=20, tol=0.005, robust=false, m=Int(M));")
-  
+
   # put S matrix from Julia back to R
   S <- julia_eval("S")
-  
+
   # return S vector
   return(S)
 }
@@ -675,36 +673,36 @@ create.solve_sdp_M <- function(Sigma, M=1, gaptol=1e-6, maxit=1000, verbose=FALS
   # Convert the covariance matrix to a correlation matrix
   G = cov2cor(Sigma)
   p = dim(G)[1]
-  
+
   # Check that the input matrix is positive-definite
   if (!is_posdef(G)) {
     warning('The covariance matrix is not positive-definite: knockoffs may not have power.', immediate.=T)
   }
-  
+
   # Convert problem for SCS
-  
+
   # Linear constraints
   Cl1 = rep(0,p)
   Al1 = -Matrix::Diagonal(p)
   Cl2 = rep(1,p)
   Al2 = Matrix::Diagonal(p)
-  
+
   # Positive-definite cone
   d_As = c(diag(p))
   As = Matrix::Diagonal(length(d_As), x=d_As)
   As = As[which(Matrix::rowSums(As) > 0),]
   Cs = c((M+1)/M*G) ##change from 2 to (M+1)/M
-  
+
   # Assemble constraints and cones
   A = cbind(Al1,Al2,As)
   C = matrix(c(Cl1,Cl2,Cs),1)
   K=NULL
   K$s=p
   K$l=2*p #not sure if it should be changed - may be not as it is the dimention of the linear part.
-  
+
   # Objective
   b = rep(1,p)
-  
+
   # Solve SDP with Rdsdp
   OPTIONS=NULL
   OPTIONS$gaptol=gaptol
@@ -715,17 +713,17 @@ create.solve_sdp_M <- function(Sigma, M=1, gaptol=1e-6, maxit=1000, verbose=FALS
   if(verbose) cat("Solving SDP ... ")
   sol = Rdsdp::dsdp(A,b,C,K,OPTIONS)
   if(verbose) cat("done. \n")
-  
+
   # Check whether the solution is feasible
   if( ! identical(sol$STATS$stype,"PDFeasible")) {
     warning('The SDP solver returned a non-feasible solution. Knockoffs may lose power.')
   }
-  
+
   # Clip solution to correct numerical errors (domain)
   s = sol$y
   s[s<0]=0
   s[s>1]=1
-  
+
   # Compensate for numerical errors (feasibility)
   if(verbose) cat("Verifying that the solution is correct ... ")
   psd = 0
@@ -741,12 +739,12 @@ create.solve_sdp_M <- function(Sigma, M=1, gaptol=1e-6, maxit=1000, verbose=FALS
   s = s*(1-s_eps)
   s[s<0]=0
   if(verbose) cat("done. \n")
-  
+
   # Verify that the solution is correct
   if (all(s==0)) {
     warning('In creation of SDP knockoffs, procedure failed. Knockoffs will have no power.',immediate.=T)
   }
-  
+
   # Scale back the results for a covariance matrix
   return(s*diag(Sigma))
 }
@@ -758,12 +756,12 @@ create.solve_group_sdp_M <- function(Sigma, M=1, clusters, gaptol=1e-6, maxit=10
   # Convert the covariance matrix to a correlation matrix
   G = cov2cor(Sigma)
   p = dim(G)[1]
-  
+
   # Check that the input matrix is positive-definite
   if (!is_posdef(G)) {
     warning('The covariance matrix is not positive-definite: knockoffs may not have power.', immediate.=T)
   }
-  
+
   #clustering to identify tightly linked variants
   #corr_max<-corr_max
   #Sigma.distance = as.dist(1 - abs(G))
@@ -774,15 +772,15 @@ create.solve_group_sdp_M <- function(Sigma, M=1, clusters, gaptol=1e-6, maxit=10
   clusters.index<-match(unique(clusters),clusters)
   p.clusters<-max(clusters)
   cum.p.clusters<-cumsum(table(clusters))
-  
+
   # Convert problem for SCS
-  
+
   # Linear constraints
   Cl1 = rep(0,p.clusters)
   Al1 = -Matrix::Diagonal(p.clusters)
   Cl2 = rep(1,p.clusters)
   Al2 = Matrix::Diagonal(p.clusters)
-  
+
   # Positive-definite cone
   #d_As = c(diag(p))
   #As = Matrix::Diagonal(length(d_As), x=d_As)
@@ -798,18 +796,18 @@ create.solve_group_sdp_M <- function(Sigma, M=1, clusters, gaptol=1e-6, maxit=10
   }
   G.clusters<-G[order(clusters),order(clusters)]
   Cs = c((M+1)/M*G.clusters) ##change from 2 to (M+1)/M
-  
+
   # Assemble constraints and cones
   A = cbind(Al1,Al2,As)
   C = matrix(c(Cl1,Cl2,Cs),1)
   K=NULL
   K$s=p
   K$l=2*p.clusters #not sure if it should be changed - may be not as it is the dimention of the linear part.
-  
+
   # Objective
   #b = rep(1,p.clusters)
   b <- table(clusters) #reweight clusters
-  
+
   # Solve SDP with Rdsdp
   OPTIONS=NULL
   OPTIONS$gaptol=gaptol
@@ -820,24 +818,24 @@ create.solve_group_sdp_M <- function(Sigma, M=1, clusters, gaptol=1e-6, maxit=10
   if(verbose) cat("Solving SDP ... ")
   sol = Rdsdp::dsdp(A,b,C,K,OPTIONS)
   if(verbose) cat("done. \n")
-  
+
   # Check whether the solution is feasible
   if( ! identical(sol$STATS$stype,"PDFeasible")) {
     warning('The SDP solver returned a non-feasible solution. Knockoffs may lose power.')
   }
-  
+
   # Clip solution to correct numerical errors (domain)
   s = sol$y
   s[s<0]=0
   s[s>1]=1
-  
+
   S<-matrix(0,ncol(G),ncol(G))
   for(k in 1:max(clusters)){
     #print(s[k])
     temp.G<-G[clusters==k,clusters==k,drop=F]
     S[clusters==k,clusters==k]<-s[k]*temp.G
   }
-  
+
   # Compensate for numerical errors (feasibility)
   psd = 0;
   s_eps = 1e-8;
@@ -849,7 +847,7 @@ create.solve_group_sdp_M <- function(Sigma, M=1, clusters, gaptol=1e-6, maxit=10
   }
   S = S*(1-s_eps)
   S<-Matrix(S)
-  
+
   # Scale back the results for a covariance matrix
   return(list(S=diag(Sigma)^(1/2)*t(diag(Sigma)^(1/2)*S),clusters=clusters))
 }
@@ -861,26 +859,26 @@ create.solve_group_sdp_pca_M <- function(Sigma, M=1, clusters, gaptol=1e-6, maxi
   # Convert the covariance matrix to a correlation matrix
   G = cov2cor(Sigma)
   p = dim(G)[1]
-  
+
   # Check that the input matrix is positive-definite
   if (!is_posdef(G)) {
     warning('The covariance matrix is not positive-definite: knockoffs may not have power.', immediate.=T)
   }
-  
+
   #clustering to identify tightly linked variants
   clusters.index<-match(unique(clusters),clusters)
   p.clusters<-max(clusters)
   cum.p.clusters<-cumsum(table(clusters))
-  
+
   n.clusters <- table(clusters) #reweight clusters
   cum.n.clusters<-c(0,cumsum(n.clusters))
   # Convert problem for SCS
-  
+
   # Linear constraints
   Cl1 = rep(0,2*p)
   temp1<-Matrix::Diagonal(2*p)
   Al1 = -temp1
-  
+
   Cl2 = rep(1,p)
   Al2<-matrix(0,p,p)
   As.B<-c() # Positive-definite cone
@@ -909,21 +907,21 @@ create.solve_group_sdp_pca_M <- function(Sigma, M=1, clusters, gaptol=1e-6, maxi
   As.D = As.D[which(Matrix::rowSums(As.D) > 0),]
   As<-rbind(As.B,As.D)
   Al2<-rbind(Al2,diag(p))
-  
+
   G.clusters<-G[order(clusters),order(clusters)]
   Cs = c((M+1)/M*G.clusters) ##change from 2 to (M+1)/M
-  
+
   # Assemble constraints and cones
   A = cbind(Al1,Al2,As)
   C = matrix(c(Cl1,Cl2,Cs),1)
   K=NULL
   K$l=2*p +p #not sure if it should be changed - may be not as it is the dimention of the linear part.
   K$s=p
-  
+
   # Objective
   b<-rep(1,2*p)
   #b<-c(rep(1/n.clusters,times=n.clusters),rep(1/n.clusters,times=n.clusters))
-  
+
   # Solve SDP with Rdsdp
   OPTIONS=NULL
   OPTIONS$gaptol=gaptol
@@ -934,12 +932,12 @@ create.solve_group_sdp_pca_M <- function(Sigma, M=1, clusters, gaptol=1e-6, maxi
   if(verbose) cat("Solving SDP ... ")
   sol = Rdsdp::dsdp(A,b,C,K,OPTIONS)
   if(verbose) cat("done. \n")
-  
+
   # Check whether the solution is feasible
   if( ! identical(sol$STATS$stype,"PDFeasible")) {
     warning('The SDP solver returned a non-feasible solution. Knockoffs may lose power.')
   }
-  
+
   s = sol$y
   S<-matrix(0,ncol(G),ncol(G))
   for(k in 1:max(clusters)){
@@ -954,11 +952,11 @@ create.solve_group_sdp_pca_M <- function(Sigma, M=1, clusters, gaptol=1e-6, maxi
     }
     S[clusters==k,clusters==k]<-as.matrix(D_k+Matrix::Diagonal(n.clusters[k], x=s[(p+cum.n.clusters[k]+1):(p+cum.n.clusters[k+1])]))
   }
-  
+
   # Clip solution to correct numerical errors (domain)
   diag(S)[diag(S)<0]=0
   diag(S)[diag(S)>1]=1
-  
+
   # Compensate for numerical errors (feasibility)
   psd = 0;
   s_eps = 1e-8;
@@ -970,7 +968,7 @@ create.solve_group_sdp_pca_M <- function(Sigma, M=1, clusters, gaptol=1e-6, maxi
   }
   S = S*(1-s_eps)
   S<-Matrix(S)
-  
+
   # Scale back the results for a covariance matrix
   return(list(S=diag(Sigma)^(1/2)*t(diag(Sigma)^(1/2)*S),clusters=clusters))
 }
@@ -983,17 +981,17 @@ create.solve_group_ME_pca_M <- function(Sigma, M=1, clusters, ini.S=NULL, pc.max
   # Convert the covariance matrix to a correlation matrix
   G = cov2cor(Sigma)
   p = dim(G)[1]
-  
+
   # Check that the input matrix is positive-definite
   if (!is_posdef(G)) {
     warning('The covariance matrix is not positive-definite: knockoffs may not have power.', immediate.=T)
   }
-  
+
   #clustering to identify tightly linked variants
   clusters.index<-match(unique(clusters),clusters)
   p.clusters<-max(clusters)
   n.clusters <- table(clusters) #reweight clusters
-  
+
   # prepare predefined matrices
   V.pc<-c();V.rep<-c()
   for (j in 1:p.clusters){
@@ -1027,7 +1025,7 @@ create.solve_group_ME_pca_M <- function(Sigma, M=1, clusters, ini.S=NULL, pc.max
   V<-Matrix(cbind(V.pc,V.rep))
   temp<-apply(V,2,paste,collapse="")
   V<-V[,match(unique(temp),temp)]
-  
+
   # initial matrix
   #alpha<-1e-8
   #Sigma<-(1-alpha)*Sigma+diag(alpha,p)
@@ -1045,7 +1043,7 @@ create.solve_group_ME_pca_M <- function(Sigma, M=1, clusters, ini.S=NULL, pc.max
   obj<-sum(log((M+1)/M*eigen.fit$values-min(eigen.fit$values)))+M*p*log(min(eigen.fit$values))#log(det(E))+M*log(det(S))
   #obj<-0
   #print(obj)
-  
+
   new.obj<-obj
   for(i in 1:maxit){
     change_obj<-0
@@ -1055,10 +1053,10 @@ create.solve_group_ME_pca_M <- function(Sigma, M=1, clusters, ini.S=NULL, pc.max
       alpha_E<-as.numeric(t(v)%*%inv.E%*%v)
       delta_l<-max(min((M*alpha_S-alpha_E)/(M+1)/alpha_S/alpha_E,1/alpha_E),-1/alpha_S)
       S<-S+delta_l*v%*%t(v)
-      
+
       change_obj_l<-log(1-delta_l*alpha_E+1e-8)+M*log(1+delta_l*alpha_S+1e-8)
       change_obj<-change_obj+change_obj_l
-      
+
       temp<-t(v)%*%inv.E
       inv.E<-inv.E-t(temp)%*%((-delta_l^(-1)+alpha_E)^(-1)*temp)
       temp<-t(v)%*%inv.S
@@ -1068,7 +1066,7 @@ create.solve_group_ME_pca_M <- function(Sigma, M=1, clusters, ini.S=NULL, pc.max
     if(change_obj/abs(new.obj)<=0.01){break}
     print(new.obj)
   }
-  
+
   # Compensate for numerical errors (feasibility)
   psd = 0;
   s_eps = 1e-8;
@@ -1080,7 +1078,7 @@ create.solve_group_ME_pca_M <- function(Sigma, M=1, clusters, ini.S=NULL, pc.max
   }
   S = S*(1-s_eps)
   S<-Matrix(S)
-  
+
   # Scale back the results for a covariance matrix
   return(list(S=diag(Sigma)^(1/2)*t(diag(Sigma)^(1/2)*S),clusters=clusters,obj.tr=sum(diag(S)),obj.me=new.obj))
 }
@@ -1093,20 +1091,20 @@ create.solve_equi_M <- function(Sigma,M=1) {
   tol = 1e-10
   # Convert the covariance matrix to a correlation matrix
   G = cov2cor(Sigma)
-  
+
   # Check that the input matrix is positive-definite
   if (!is_posdef(G)) {
     stop('The covariance matrix is not positive-definite: cannot solve SDP',immediate.=T)
   }
-  
+
   lambda_min = eigen(G, symmetric=T, only.values = T)$values[p]
   if (lambda_min<0) {
     stop('In creation of equi-correlated knockoffs, while computing the smallest eigenvalue of the
          covariance matrix. The covariance matrix is not positive-definite.')
   }
-  
+
   s = rep(1, nrow(Sigma)) * min((M+1)/M*lambda_min, 1)
-  
+
   # Compensate for numerical errors (feasibility)
   psd = 0;
   s_eps = 1e-8;
@@ -1117,7 +1115,7 @@ create.solve_equi_M <- function(Sigma,M=1) {
     }
   }
   s = s*(1-s_eps)
-  
+
   # Scale back the results for a covariance matrix
   return(s*diag(Sigma))
 }
@@ -1133,7 +1131,7 @@ create.solve_group_equi_M <- function(Sigma,M=1,clusters){
   if (!is_posdef(G)) {
     stop('The covariance matrix is not positive-definite: cannot solve SDP',immediate.=T)
   }
-  
+
   if (p>2) {
     #clustering to identify tightly linked variants
     converged=FALSE
@@ -1153,9 +1151,9 @@ create.solve_group_equi_M <- function(Sigma,M=1,clusters){
       #group.DGD<-group.D%*%group.G%*%group.D
       DGD<-D%*%G%*%D
       DGD<-as.matrix(forceSymmetric(DGD))
-      
+
       lambda_min<-RSpectra::eigs(as.matrix(DGD), 1, which="SR", opts=list(retvec = FALSE, maxitr=maxitr, tol=1e-8))$values
-      
+
       if (length(lambda_min)==1) {
         converged = TRUE
       } else {
@@ -1166,19 +1164,19 @@ create.solve_group_equi_M <- function(Sigma,M=1,clusters){
   } else {
     lambda_min = eigen(G, symmetric=T, only.values = T)$values[p]
   }
-  
+
   if (lambda_min<0) {
     stop('In creation of equi-correlated knockoffs, while computing the smallest eigenvalue of the
          covariance matrix. The covariance matrix is not positive-definite.')
   }
-  
+
   gamma<-min((M+1)/M*lambda_min, 1) #change 2 to M+1/M
   S<-matrix(0,ncol(G),ncol(G))
   for(k in 1:max(clusters)){
     temp.G<-G[clusters==k,clusters==k,drop=F]
     S[clusters==k,clusters==k]<-gamma*temp.G
   }
-  
+
   # Compensate for numerical errors (feasibility)
   psd = 0;
   s_eps = 1e-8;
@@ -1189,7 +1187,7 @@ create.solve_group_equi_M <- function(Sigma,M=1,clusters){
     }
   }
   S = S*(1-s_eps)
-  
+
   S<-Matrix(S)
   # Scale back the results for a covariance matrix
   return(list(S=diag(Sigma)^(1/2)*t(diag(Sigma)^(1/2)*S),clusters=clusters))
@@ -1199,15 +1197,15 @@ create.solve_group_equi_M <- function(Sigma,M=1,clusters){
 create.solve_asdp_M <- function(Sigma, M=1, max.size=500, gaptol=1e-6, maxit=1000, verbose=FALSE) {
   # Check that covariance matrix is symmetric
   stopifnot(isSymmetric(Sigma))
-  
+
   if(ncol(Sigma) <= max.size) return(create.solve_sdp_M(Sigma, M=M, gaptol=gaptol, maxit=maxit, verbose=verbose))
-  
+
   # Approximate the covariance matrix as block diagonal
   if(verbose) cat(sprintf("Dividing the problem into subproblems of size <= %s ... ", max.size))
   cluster_sol = divide.sdp(Sigma, max.size=max.size)
   n.blocks = max(cluster_sol$clusters)
   if(verbose) cat("done. \n")
-  
+
   # Solve the smaller SDPs corresponding to each block
   if(verbose) cat(sprintf("Solving %s smaller SDPs ... \n", n.blocks))
   s_asdp_list = list()
@@ -1217,7 +1215,7 @@ create.solve_asdp_M <- function(Sigma, M=1, max.size=500, gaptol=1e-6, maxit=100
     if(verbose) utils::setTxtProgressBar(pb, k)
   }
   if(verbose) cat("\n")
-  
+
   # Assemble the solutions into one vector of length p
   p = dim(Sigma)[1]
   idx_count = rep(1, n.blocks)
@@ -1227,7 +1225,7 @@ create.solve_asdp_M <- function(Sigma, M=1, max.size=500, gaptol=1e-6, maxit=100
     s_asdp[j] = s_asdp_list[[cluster_j]][idx_count[cluster_j]]
     idx_count[cluster_j] = idx_count[cluster_j]+1
   }
-  
+
   # Maximize the shrinkage factor
   if(verbose) cat(sprintf("Combinining the solutions of the %s smaller SDPs ... ", n.blocks))
   tol = 1e-9
@@ -1247,7 +1245,7 @@ create.solve_asdp_M <- function(Sigma, M=1, max.size=500, gaptol=1e-6, maxit=100
   s_asdp_scaled = gamma_range[min(gamma_opt$where)]*s_asdp
   options(warn=0)
   if(verbose) cat("done. \n")
-  
+
   if(verbose) cat("Verifying that the solution is correct ... ")
   # Verify that the solution is correct
   if (!is_posdef((M+1)/M*Sigma-diag(s_asdp_scaled,length(s_asdp_scaled)))) {
@@ -1255,7 +1253,7 @@ create.solve_asdp_M <- function(Sigma, M=1, max.size=500, gaptol=1e-6, maxit=100
     s_asdp_scaled = 0*s_asdp_scaled
   }
   if(verbose) cat("done. \n")
-  
+
   # Return result
   s_asdp_scaled
 }
@@ -1290,7 +1288,7 @@ Get.group.rep<-function(Sigma,clusters,inv.Sigma=NULL,thres=0.75,search.method='
         #representative residual R2
         R2.R<-colSums(B*inv.A%*%B)
         inv.AB<-inv.A%*%B
-        
+
         if(stop.method=='R2.ratio'){
           #representative plus other groups R2
           index.O<-which(clusters!=j)
@@ -1299,7 +1297,7 @@ Get.group.rep<-function(Sigma,clusters,inv.Sigma=NULL,thres=0.75,search.method='
             inv.Sigma[index.OR,-index.OR,drop=F]%*%solve(inv.Sigma[-index.OR,-index.OR])%*%t(inv.Sigma[index.OR,-index.OR,drop=F])
           B.OR<-Sigma[which(clusters==j)[-index],index.OR,drop=F]
           R2.OR<-rowSums(B.OR%*%inv.A.OR*B.OR)#diag(B%*%inv.A%*%t(B))
-          
+
           if(mean(R2.R/R2.OR)>=thres){
             #print(mean(R2.R/R2.OR))
             break
@@ -1320,7 +1318,7 @@ Get.group.rep<-function(Sigma,clusters,inv.Sigma=NULL,thres=0.75,search.method='
         inv.A<-rbind(cbind(inv.A+inv.Ab%*%R%*%t(inv.Ab),-inv.Ab%*%R),cbind(-R%*%t(inv.Ab),R))
         #update results
         index<-c(index,index.add)
-        
+
       }
       index<-which(clusters==j)[index]
       rep.data<-rbind(rep.data,cbind(j,as.numeric(index)))
@@ -1357,7 +1355,7 @@ Get.rep<-function(Sigma,all.R2,thres=0.1,search.method='subsetC',stop.method='R2
       #compute residual R2
       obj<-all.R2[-index.all]-(1-inv.R.all)
       index.add<-((1:nrow(cor.G))[-index.all])[which.min(obj)]
-      
+
       b<-cor.G[index.all,index.add,drop=F]
       c<-cor.G[index.add,index.add,drop=F]
       R<-as.numeric(solve(c-t(b)%*%inv.A%*%b))
@@ -1367,7 +1365,7 @@ Get.rep<-function(Sigma,all.R2,thres=0.1,search.method='subsetC',stop.method='R2
       index.all<-c(index.all,index.add)
     }
   }
-  
+
   clusters.index.all<-unique(clusters[index.all])
   #index<-index.all[1]
   index<-which(clusters==clusters.index.all[1])
@@ -1398,7 +1396,7 @@ Get.rep<-function(Sigma,all.R2,thres=0.1,search.method='subsetC',stop.method='R2
     index<-c(index,index.add)
   }
   rep.index<-as.numeric(index)
-  
+
   return(rep.index)
 }
 
@@ -1444,7 +1442,7 @@ divide.sdp <- function(Sigma, max.size) {
   Eps = matrix(rnorm(p*p),p)*1e-6
   dissimilarity = 1 - abs(cov2cor(Sigma)+Eps)
   distance = as.dist(dissimilarity)
-  
+
   # Hierarchical clustering
   fit = hclust(distance, method="complete")
   # Cut tree into clusters of size smaller than a threshold
@@ -1464,28 +1462,28 @@ divide.sdp <- function(Sigma, max.size) {
       break
     }
   }
-  
+
   # Merge small clusters
-  clusters.new = merge_clusters(clusters, max.size)
+  clusters.new = merge.clusters(clusters, max.size)
   while(sum(clusters.new != clusters)>0) {
     clusters = clusters.new
-    clusters.new = merge_clusters(clusters, max.size)
+    clusters.new = merge.clusters(clusters, max.size)
   }
   clusters = clusters.new
-  
+
   # Create covariance submatrices for each cluster
   subSigma = vector("list", max(clusters))
   for( k in 1:length(subSigma) ) {
     indices_k = clusters==k
     subSigma[[k]] = Sigma[indices_k,indices_k]
   }
-  
+
   # Return the cluster assignments and the cluster covariance submatrices
   structure(list(clusters=clusters, subSigma=subSigma), class='knockoff.clusteredCovariance')
 }
 
 
-merge_clusters <- function(clusters, max.size) {
+merge.clusters <- function(clusters, max.size) {
   cluster.sizes = table(clusters)
   clusters.new = rep(0, length(clusters))
   g = 1
@@ -1504,7 +1502,7 @@ merge_clusters <- function(clusters, max.size) {
 
 is_posdef = function(A, tol=1e-9) {
   p = nrow(matrix(A))
-  
+
   if (p<500) {
     lambda_min = min(eigen(A,only.values=T)$values)
   }
@@ -1533,7 +1531,7 @@ elnetR <- function(lambda1, lambda2=0, X, b, thr=1e-4,
                    x=NULL) {
   stopifnot(length(b) == ncol(X))
   diag <- colSums(X^2)
-  
+
   if(length(lambda2) > 1) {
     nlambda2 <- length(lambda2)
     for(i in 1:nlambda2) {
@@ -1542,11 +1540,11 @@ elnetR <- function(lambda1, lambda2=0, X, b, thr=1e-4,
       result <- list(fit=result, lambda2=lambda2[i])
       if(i == 1) Result <- rep(result, nlambda2) else
         Result[i] <- result
-      
+
     }
     return(Result)
   }
-  
+
   order <- order(lambda1, decreasing = T)
   lambda1a <- lambda1[order]
   conv <- lambda1a * NA
@@ -1555,40 +1553,40 @@ elnetR <- function(lambda1, lambda2=0, X, b, thr=1e-4,
   pred <- matrix(NA, nrow(X), length(lambda1))
   loss <- rep(NA, length(lambda1))
   fbeta <- loss
-  
+
   if(is.null(x)) x <- b * 0.0 else {
     stopifnot(length(x) == len)
     x <- x + 0.0 # Making sure R creates a copy...
   }
-  
+
   if(is.null(blocks)) {
     Blocks <- list(startvec=0, endvec=len - 1)
   } else {
     Blocks <- parseblocks(blocks)
     stopifnot(max(Blocks$endvec)==len - 1)
   }
-  
+
   X <- as.matrix(X)
   yhat <- as.vector(X %*% x)
-  
+
   for(i in 1:length(lambda1a)) {
     if(trace > 0) cat("lambda1: ", lambda1a[i], "\n")
     conv[i] <- repelnet(lambda1a[i], lambda2, diag, X, b,thr,x,yhat, trace-1,maxiter,
                         Blocks$startvec, Blocks$endvec)
     if(conv[i] != 1) stop("Not converging...")
-    
+
     beta[,i] <- x
     pred[,i] <- yhat
     loss[i] <- sum(yhat^2) - 2* sum(b * x)
     fbeta[i] <- loss[i] + 2* sum(abs(x))*lambda1a[i] + sum(x^2)*lambda2
   }
-  
+
   conv[order] <- conv
   beta[,order] <- beta
   pred[,order] <- pred
   loss[order] <- loss
   fbeta[order] <- fbeta
-  
+
   return(list(lambda1=lambda1, lambda2=lambda2, beta=beta, conv=conv, pred=pred, loss=loss, fbeta=fbeta))
 }
 
@@ -1608,7 +1606,7 @@ step1 <- function(C,vlist=seq(ncol(C)),RSS0=sum(diag(C)),zero=1e-12){
   list(index = index, variance = vmin, R2 = 1-vmin/RSS0, C=residC[!izero,!izero],vlist=vlist[!izero])
 }
 
-check_early_stopping_rule <- function(rsq_l, rsq_m, rsq_u, cond_0_thresh=1e-2, cond_1_thresh=1e-2) 
+check_early_stopping_rule <- function(rsq_l, rsq_m, rsq_u, cond_0_thresh=1e-2, cond_1_thresh=1e-2)
 {
   delta_u <- (rsq_u-rsq_m)
   delta_m <- (rsq_m-rsq_l)
@@ -1636,7 +1634,7 @@ subsetC.R2 <- function(C, k=NA, R2.thres=0.9, traceit=FALSE){
     vlist <- fit1$vlist
     R2[i] <- fit1$R2
     if(traceit)cat(i, "index", fit1$index, "Variance Explained", fit1$variance,"R-squared",fit1$R2,"\n")
-    
+
     if(fit1$R2>=R2.thres){break}
   }
   list(indices = indices[indices!=0], R2=R2[indices!=0])
@@ -1662,7 +1660,7 @@ subsetC <- function(C, k=NA, traceit=FALSE){
     vlist <- fit1$vlist
     R2[i] <- fit1$R2
     if(traceit)cat(i, "index", fit1$index, "Variance Explained", fit1$variance,"R-squared",fit1$R2,"\n")
-    
+
     # if there is at least 3 R2 values,
     # check early stopping rule
     if (do.adaptive && (i >= 3)) {
@@ -1716,13 +1714,13 @@ MK.statistic<-function (T_0,T_k,method='median'){
   T_0<-as.matrix(T_0);T_k<-as.matrix(T_k)
   T.temp<-cbind(T_0,T_k)
   T.temp[is.na(T.temp)]<-0
-  
+
   which.max.alt<-function(x){
     temp.index<-which(x==max(x))
     if(length(temp.index)!=1){return(temp.index[2])}else{return(temp.index[1])}
   }
   kappa<-apply(T.temp,1,which.max.alt)-1
-  
+
   if(method=='max'){tau<-apply(T.temp,1,max)-apply(T.temp,1,max.nth,n=2)}
   if(method=='median'){
     Get.OtherMedian<-function(x){median(x[-which.max(x)])}
@@ -1746,7 +1744,7 @@ GhostKnockoff.fit.original<-function(Zscore_0, N.effect, fit.prelim, method='sus
   N.effect<-as.vector(N.effect)
   Zscore_0[is.na(Zscore_0)]<-0
   N.effect[is.na(N.effect)]<-Inf
-  
+
   M<-fit.prelim$M
   n.G<-nrow(Zscore_0)
   P.each<-fit.prelim$P.each
@@ -1754,10 +1752,10 @@ GhostKnockoff.fit.original<-function(Zscore_0, N.effect, fit.prelim, method='sus
   A<-as.matrix(fit.prelim$A)
   A.left<-fit.prelim$A.left
   V.left<-fit.prelim$V.left
-  
+
   if(type=='fdr'){M.rep<-1}
   if(type=='fwer'){M.rep<-M.fwer}
-  
+
   T_0<-list();T_k<-list()
   kappa<-list();tau<-list()
   for(m in 1:M.rep){
@@ -1765,7 +1763,7 @@ GhostKnockoff.fit.original<-function(Zscore_0, N.effect, fit.prelim, method='sus
     Normal_k<-matrix(V.left%*%matrix(rnorm(ncol(V.left)),ncol(V.left),1),nrow=n.G)
     GK.Zscore_0<-Zscore_0
     GK.Zscore_k<-as.vector(P.each%*%GK.Zscore_0)+Normal_k
-    
+
     if(method=='marginal'){
       T_0[[m]]<-(GK.Zscore_0)^2
       T_k[[m]]<-(GK.Zscore_k)^2
@@ -1775,7 +1773,7 @@ GhostKnockoff.fit.original<-function(Zscore_0, N.effect, fit.prelim, method='sus
       r<-GK.Zscore_0/sqrt(N.effect)#sqrt(N.effect-1+GK.Zscore_0^2)
       r_k<-as.vector(GK.Zscore_k/sqrt(N.effect))#sqrt(N.effect-1+GK.Zscore_k^2))
       r_all<-as.matrix(c(r,r_k))
-      
+
       nfold<-5
       nA<-N.effect*(nfold-1)/nfold;nB<-N.effect/nfold
       temp.left<-sqrt(nB/nA/N.effect)*as.matrix(A.left)
@@ -1789,22 +1787,22 @@ GhostKnockoff.fit.original<-function(Zscore_0, N.effect, fit.prelim, method='sus
       fit.basil<-try(ghostbasil(temp.A, r_all_A, alpha=1, delta.strong.size = max(1,min(500,length(r_all_A)/20)), max.strong.size = nrow(temp.A),n.threads=1,use.strong.rule=F),silent=T)
       parameter.set<-rbind(parameter.set,cbind(fit.basil$lmdas,shrink[k]))
       beta.all<-cbind(beta.all,fit.basil$betas)
-      
+
       Get.f<-function(x){x<-as.matrix(x);return(t(x)%*%r_all_B/sqrt(t(x)%*%temp.A%*%x))}
       f.lambda<-apply(beta.all,2,Get.f)
       f.lambda[is.na(f.lambda)]<--Inf
       #beta<-beta.all[,which.max(f.lambda)]
       parameter<-parameter.set[which.max(f.lambda),]
       temp.A<-(1-parameter[2])*A+diag(parameter[2],nrow(A))
-      
+
       lambda.all<-fit.basil$lmdas
       lambda<-fit.basil$lmdas[which.max(f.lambda)]
       lambda.seq <- lambda.all[lambda.all > lambda]
       lambda.seq <- c(lambda.seq, lambda)
-      
+
       fit.basil<-ghostbasil(temp.A, r_all,user.lambdas=lambda.seq, alpha=1, delta.strong.size = max(1,min(500,length(r_all_A)/20)), max.strong.size = nrow(temp.A),n.threads=1,use.strong.rule=F)
       beta<-fit.basil$betas[,ncol(fit.basil$betas)]
-      
+
       T_0[[m]]<-abs(beta[1:n.G])
       T_k[[m]]<-abs(matrix(beta[-(1:n.G)],n.G,M))
     }
@@ -1813,7 +1811,7 @@ GhostKnockoff.fit.original<-function(Zscore_0, N.effect, fit.prelim, method='sus
       r<-GK.Zscore_0/sqrt(N.effect)#sqrt(N.effect-1+GK.Zscore_0^2)
       r_k<-as.vector(GK.Zscore_k/sqrt(N.effect))#sqrt(N.effect-1+GK.Zscore_k^2))
       r_all<-as.matrix(c(r,r_k))
-      
+
       lambda_max<-max(abs(rnorm(length(r_all))))/sqrt(N.effect)
       epsilon <- .0001
       K <- 100
@@ -1822,11 +1820,11 @@ GhostKnockoff.fit.original<-function(Zscore_0, N.effect, fit.prelim, method='sus
       lambda<-lambda_max*0.6
       lambda.seq <- lambda.all[lambda.all > lambda]
       lambda.seq <- c(lambda.seq, lambda)
-      
+
       temp.A<-A+0.01*diag(1,nrow(A))
       fit.basil<-ghostbasil(temp.A, r_all,user.lambdas=lambda.seq, alpha=1, delta.strong.size = max(1,min(500,length(r_all)/20)), max.strong.size = nrow(temp.A),n.threads=1,use.strong.rule=F)
       beta<-fit.basil$betas[,ncol(fit.basil$betas)]
-      
+
       T_0[[m]]<-abs(beta[1:n.G])
       T_k[[m]]<-abs(matrix(beta[-(1:n.G)],n.G,M))
     }
@@ -1841,7 +1839,7 @@ GhostKnockoff.fit.original<-function(Zscore_0, N.effect, fit.prelim, method='sus
     kappa[[m]]<-MK.stat[,'kappa']
     tau[[m]]<-MK.stat[,'tau']
   }
-  
+
   return(list(T_0=T_0,T_k=T_k,kappa=kappa,tau=tau))
 }
 
@@ -1861,19 +1859,19 @@ KO_Filter<-function(tau,kappa,M)
   tau_ord<-tau[ord]
   kappa_ord<-kappa[ord]
   kappa_ord[tau_ord<1e-6]<-1
-  
+
   keep<-sum(tau_ord>1e-6)
   tau_ord<-tau_ord[1:keep]
   kappa_ord<-kappa_ord[1:keep]
-  
+
   RR<-(kappa_ord==0)
-  
+
   aux_term<-0*RR+1
-  
+
   RR<-cumsum(kappa_ord==0)
   RR<-RR+(RR==0)
   V<-1/M*aux_term+1/M*cumsum(kappa_ord!=0)
-  
+
   V_RR<-V/RR
   q_V_RR<-rep(Inf,length(ord))
   V_RR_order<-order(V_RR,decreasing = TRUE)
@@ -1882,10 +1880,8 @@ KO_Filter<-function(tau,kappa,M)
     q_V_RR[1:i]<-V_RR[i]
   }
   q_V_RR[kappa_ord!=0]<-Inf
-  
+
   q<-rep(Inf,length(ord))
   q[ord]<-q_V_RR
   return(q)
 }
-
-

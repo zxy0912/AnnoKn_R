@@ -2,3 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Machine-specific paths, external datasets/dependencies, and generated results.
+/reproducibility/config.local.R
+/reproducibility/data/
+/reproducibility/external/
+/reproducibility/outputs/
+/reproducibility/**/__pycache__/

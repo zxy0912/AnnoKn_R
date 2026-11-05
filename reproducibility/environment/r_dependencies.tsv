@@ -1,0 +1,44 @@
+package	version	minimum_version	source	ref	check	citation_key
+adaptiveKnockoff	0.1.0		github:zhimeir/adaptiveKnockoffs	288f9565a07d376d5c1a3e686a04336b6c5a4c1e	installed_and_loaded	R-adaptiveKnockoff
+adaptMT	1.0.0		github:lihualei71/adaptMT	d912b9f7b454803f55623e73cb371424a4fefaa2	loaded	R-adaptMT
+AnnoGKR	0.1.0.9001		repository:software/AnnoGKR		installed_and_loaded	
+AnnoKn	0.0.0.9000		repository:.		installed_and_loaded	
+base	4.3.3		R		loaded	R-core
+bigstatsr	1.6.2		CRAN		loaded	R-bigstatsr
+corpcor	1.6.10		CRAN		loaded	R-corpcor
+data.table	1.17.8		CRAN		loaded	R-data.table
+dendextend	1.19.1		CRAN		loaded	R-dendextend
+doMC	1.3.8		CRAN		installed_and_loaded	R-doMC
+dplyr	1.1.4		CRAN		loaded	R-dplyr
+expm	1.0-0		CRAN		loaded	R-expm
+gam	1.22-5		CRAN		loaded	R-gam
+genio	1.1.2		CRAN		loaded	R-genio
+ggplot2	3.5.2		CRAN		loaded	R-ggplot2
+ghostbasil	0.1.3		github:szcf-weiya/ghostbasil	0f55b03db9b7641c335de16a67abbded6ac83b07	loaded	R-ghostbasil
+glmnet	4.1-10	4.1.10	CRAN		loaded	R-glmnet
+grDevices	4.3.3		R		loaded	R-core
+grid	4.3.3		R		loaded	R-core
+gridExtra	2.3		CRAN		loaded	R-gridExtra
+gtools	3.9.5		CRAN		loaded	R-gtools
+hdi	0.1-10		CRAN		loaded	R-hdi
+knockoff	0.3.6	0.3.6	CRAN		loaded	R-knockoff
+MASS	7.3-60.0.1		CRAN		loaded	R-MASS
+Matrix	1.6-5	1.6-5	CRAN		loaded	R-Matrix
+mgcv	1.9-3		CRAN		loaded	R-mgcv
+patchwork	1.3.2		CRAN		loaded	R-patchwork
+R.utils	2.13.0		CRAN		loaded	R-R.utils
+randomForest	4.7-1.2		CRAN		loaded	R-randomForest
+rdist	0.0.5		CRAN		loaded	R-rdist
+Rdsdp	1.0.6	1.0.6	CRAN		loaded	R-Rdsdp
+remotes	2.5.0		CRAN		loaded	R-remotes
+RSpectra	0.16-2	0.16-2	CRAN		loaded	R-RSpectra
+SNPknock	0.8.4		github:msesia/snpknock	f0d027b4891fa9a0ec2a541c231fb80a8dbbabc8	loaded	R-SNPknock
+splines	4.3.3		R		loaded	R-core
+stats	4.3.3		R		loaded	R-core
+susieR	0.14.2		CRAN		loaded	R-susieR
+tidyr	1.3.1		CRAN		loaded	R-tidyr
+tidyverse	2.0.0		CRAN		loaded	R-tidyverse
+tools	4.3.3		R		loaded	R-core
+utils	4.3.3		R		loaded	R-core
+VennDiagram	1.7.3		CRAN		loaded	R-VennDiagram
+xtune	2.0.0		github:JingxuanH/xtune	33d88886b6f66decb262fd90eb8e688e14d073bc	loaded	R-xtune
